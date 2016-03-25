@@ -1,12 +1,10 @@
 package com.example.tom.vrvisualisertest;
 
-import android.annotation.TargetApi;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.media.audiofx.Visualizer;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
@@ -28,8 +26,7 @@ public class MainActivity extends AppCompatActivity {
     setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
     //Setup the visualiser, choosing whether to use audio from another app or microphone.
-    setupVisualiser(false
-        , false, true); //True: Use microphone, collect waveform data, convert to fft.
+    setupVisualiser(false, true, true); //True: Use microphone, collect waveform data, convert to fft.
   }
 
   @Override
@@ -49,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
   protected void onDestroy() {
     super.onDestroy();
     visualiserView.setEnabled(false);
+    visualiser.release();
   }
 
   private void initMicrophone() {
@@ -80,15 +78,15 @@ public class MainActivity extends AppCompatActivity {
 
     visualiser.setCaptureSize(Visualizer.getCaptureSizeRange()[1]); //Set capture size to max.
 
-    //Setup listener to fill bytes with waveform data every sampleRate time.
+    //Setup listener to fill bytes with waveform/fft data every sampleRate time.
     visualiser.setDataCaptureListener(
         new Visualizer.OnDataCaptureListener() {
           public void onWaveFormDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
-            //visualiserView.updateVisualizer(bytes);
+            visualiserView.updateVisualizerWave(bytes);
           }
 
           public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
-            visualiserView.updateVisualizerWithFft(bytes);
+            visualiserView.updateVisualizerFft(bytes);
           }
         }, Visualizer.getMaxCaptureRate() / 2, getWaveform, getFft);  //Choose to get waveform, fft output.
     visualiser.setEnabled(true); //Enabled only when needed, after setCaptureSize.

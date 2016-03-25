@@ -14,11 +14,10 @@ import android.view.View;
 
 public class VisualizerView extends View {
 
-  protected short[] mAudioData = new short[1024];
-  private byte[] audioBytes;
-  private float[] drawPoints;
+  private byte[] fftBytes, waveBytes;
+  private float[] fftDrawPoints, waveDrawPoints;
   private Rect screenRect = new Rect();
-  private Paint paint = new Paint();
+  private Paint fftPaint = new Paint(), wavePaint = new Paint();
   private int divisions = 2; //Power of 2!
 
 
@@ -38,14 +37,25 @@ public class VisualizerView extends View {
   }
 
   private void init() {
-    audioBytes = null;
-    paint.setStrokeWidth(5f);
-    paint.setAntiAlias(true);
-    paint.setColor(Color.rgb(0, 128, 0));
+    fftBytes = null;
+    waveBytes = null;
+
+    fftPaint.setStrokeWidth(5f);
+    fftPaint.setAntiAlias(true);
+    fftPaint.setColor(Color.rgb(0, 250, 0));
+
+    wavePaint.setStrokeWidth(2f);
+    wavePaint.setAntiAlias(true);
+    wavePaint.setColor(Color.rgb(200, 0, 0));
   }
 
-  public void updateVisualizerWithFft(byte[] bytes) {
-    audioBytes = bytes;
+  public void updateVisualizerFft(byte[] bytes) {
+    fftBytes = bytes;
+    invalidate();
+  }
+
+  public void updateVisualizerWave(byte[] bytes) {
+    waveBytes = bytes;
     invalidate();
   }
 
@@ -53,32 +63,51 @@ public class VisualizerView extends View {
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
 
-    if (audioBytes == null) {
-      return;
-    }
-    if (drawPoints == null || drawPoints.length < audioBytes.length * 4) {
-      drawPoints = new float[audioBytes.length * 2];
-    }
-
     screenRect.set(0, 0, getWidth(), getHeight());  //Redefine screen view.
 
-    for (int i = 0; i < audioBytes.length / divisions; i++) {
-      drawPoints[i * 4] = i * 4 * divisions;
-      drawPoints[i * 4 + 2] = i * 4 * divisions;
-      byte rfk = audioBytes[divisions * i];
-      byte ifk = audioBytes[divisions * i + 1];
-      float magnitude = (rfk * rfk + ifk * ifk);
-      int dbValue = (int) (10 * Math.log10(magnitude));
+    if (fftBytes != null) {
 
-      if (true) {
-        drawPoints[i * 4 + 1] = 0;
-        drawPoints[i * 4 + 3] = (dbValue * 4 - 10);
-      } else {
-        drawPoints[i * 4 + 1] = screenRect.height();
-        drawPoints[i * 4 + 3] = screenRect.height() - (dbValue * 4 - 10);
+      if (fftDrawPoints == null || fftDrawPoints.length < fftBytes.length * 4) {
+        fftDrawPoints = new float[fftBytes.length * 2];
+      }
+
+      for (int i = 0; i < fftBytes.length / divisions; i++) {
+        fftDrawPoints[i * 4] = i * 4 * divisions;
+        fftDrawPoints[i * 4 + 2] = i * 4 * divisions;
+        byte rfk = fftBytes[divisions * i];
+        byte ifk = fftBytes[divisions * i + 1];
+        float magnitude = (rfk * rfk + ifk * ifk);
+        int dbValue = (int) (10 * Math.log10(magnitude));
+
+        if (false) {
+          fftDrawPoints[i * 4 + 1] = 0;
+          fftDrawPoints[i * 4 + 3] = (dbValue * 4 - 10);
+        } else {
+          fftDrawPoints[i * 4 + 1] = ((screenRect.height()/2)+screenRect.height()/4) + (dbValue * 3);
+          fftDrawPoints[i * 4 + 3] = ((screenRect.height()/2)+screenRect.height()/4) - (dbValue * 3);
+          //fftDrawPoints[i * 4 + 1] = screenRect.height();
+          //fftDrawPoints[i * 4 + 3] = screenRect.height() - (dbValue * 4 - 10);
+        }
       }
     }
 
-    canvas.drawLines(drawPoints, paint);
+    if (waveBytes != null) {
+
+      if (waveDrawPoints == null || waveDrawPoints.length < waveBytes.length * 4) {
+        waveDrawPoints = new float[waveBytes.length * 4];
+      }
+      screenRect.set(0, 0, getWidth(), getHeight());
+      for (int i = 0; i < waveBytes.length - 1; i++) {
+        waveDrawPoints[i * 4] = screenRect.width() * i / (waveBytes.length - 1);
+        waveDrawPoints[i * 4 + 1] = screenRect.height() / 4
+            + ((byte) (waveBytes[i] + 128)) * (screenRect.height() / 2) / 128;
+        waveDrawPoints[i * 4 + 2] = screenRect.width() * (i + 1) / (waveBytes.length - 1);
+        waveDrawPoints[i * 4 + 3] = screenRect.height() / 4
+            + ((byte) (waveBytes[i + 1] + 128)) * (screenRect.height() / 2) / 128;
+      }
+    }
+
+    canvas.drawLines(fftDrawPoints, fftPaint);
+    canvas.drawLines(waveDrawPoints, wavePaint);
   }
 }
