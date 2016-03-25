@@ -18,6 +18,7 @@ public class VisualizerView extends View {
   private float[] drawPoints;
   private Rect screenRect = new Rect();
   private Paint paint = new Paint();
+  private int divisions = 32; //Power of 2!
 
 
   public VisualizerView(Context context) {
@@ -37,7 +38,7 @@ public class VisualizerView extends View {
 
   private void init() {
     audioBytes = null;
-    paint.setStrokeWidth(1.5f);
+    paint.setStrokeWidth(5f);
     paint.setAntiAlias(true);
     paint.setColor(Color.rgb(0, 128, 0));
   }
@@ -47,8 +48,53 @@ public class VisualizerView extends View {
     invalidate();
   }
 
+  public void updateVisualizerWithFft(byte[] bytes) {
+    audioBytes = bytes;
+    invalidate();
+  }
+
   @Override
   protected void onDraw(Canvas canvas) {
+    super.onDraw(canvas);
+    if (audioBytes == null) {
+      return;
+    }
+    if (drawPoints == null || drawPoints.length < audioBytes.length * 4) {
+      drawPoints = new float[audioBytes.length * 2];
+    }
+
+    screenRect.set(0, 0, getWidth(), getHeight());  //Redefine screen view.
+
+    int offset = screenRect.width()/5;
+    for (int i = 0; i < audioBytes.length / divisions; i++) {
+      drawPoints[i * 4] = (((screenRect.width() - offset) / divisions) * i) + offset/2;
+      drawPoints[i * 4 + 2] = (((screenRect.width() - offset) / divisions) * i) + offset/2;
+      byte rfk = audioBytes[divisions * i];
+      byte ifk = audioBytes[divisions * i + 1];
+      float magnitude = (rfk * rfk + ifk * ifk);
+      int dbValue = (int) (40 * Math.log10(magnitude));
+
+      if(true)
+      {
+        drawPoints[i * 4 + 1] = 0;
+        drawPoints[i * 4 + 3] = (dbValue * 2 - 10);
+      }
+      else
+      {
+        drawPoints[i * 4 + 1] = screenRect.height();
+        drawPoints[i * 4 + 3] = screenRect.height() - (dbValue * 2 - 10);
+      }
+    }
+  
+    canvas.drawLines(drawPoints, paint);
+}
+
+}
+
+
+/*
+
+
     super.onDraw(canvas);
     if (audioBytes == null) {
       return;
@@ -69,6 +115,4 @@ public class VisualizerView extends View {
       //System.out.println(audioBytes[i]);  //DEBUG.
     }
     canvas.drawPoints(drawPoints, paint);
-}
-
-}
+ */

@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
     setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
     //Setup the visualiser, choosing whether to use audio from another app or microphone.
-    setupVisualiser(false); //True = use microphone.
+    setupVisualiser(false, false); //True: Use microphone, use Waveform data.
   }
 
   @Override
@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
     visualiserView.setEnabled(false);
   }
 
-  private void setupVisualiser(Boolean useMicrophone) {
+  private void setupVisualiser(Boolean useMicrophone, Boolean waveForm) {
     // Create the Visualizer object and attach it to our input.
     if (useMicrophone) {
       //visualiser = new Visualizer(CODE TO SETUP MICROPHONE INPUT HERE);
@@ -51,13 +51,13 @@ public class MainActivity extends AppCompatActivity {
     visualiser.setDataCaptureListener(
         new Visualizer.OnDataCaptureListener() {
           public void onWaveFormDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
-            visualiserView.updateVisualizer(bytes);
+            //visualiserView.updateVisualizer(bytes);
           }
 
           public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
+            visualiserView.updateVisualizerWithFft(bytes);
           }
-        }, Visualizer.getMaxCaptureRate() / 2, true, false);
-
+        }, Visualizer.getMaxCaptureRate() / 2, waveForm, !waveForm);  //Choose to get waveform or fft output.
     visualiser.setEnabled(true); //Enabled only when needed, after setCaptureSize.
   }
 }
